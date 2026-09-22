@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OFFGRID-TRANSLATE</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #e6e6e6;
+    --accent: #2563eb;
+    --accent-soft: #eaf1fe;
+    --warn: #b45309;
+    --warn-bg: #fff7e8;
+    --warn-border: #f3d9a4;
+    --mono: 'SFMono-Regular', Consolas, monospace;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a;
+      --panel: #1f2023;
+      --text: #ececec;
+      --muted: #9a9a9a;
+      --border: #333437;
+      --accent: #5b9bff;
+      --accent-soft: #1c2636;
+      --warn: #f0b35c;
+      --warn-bg: #2b2419;
+      --warn-border: #4a3a1e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a;
+    --panel: #1f2023;
+    --text: #ececec;
+    --muted: #9a9a9a;
+    --border: #333437;
+    --accent: #5b9bff;
+    --accent-soft: #1c2636;
+    --warn: #f0b35c;
+    --warn-bg: #2b2419;
+    --warn-border: #4a3a1e;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .wrap { width: 100%; max-width: 880px; }
+  h1 { font-size: 1.25rem; margin: 0 0 4px; letter-spacing: 0.02em; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin: 0 0 16px; line-height: 1.6; }
+  .chrome-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+  .chrome-notice .icon { font-size: 1rem; line-height: 1.6; flex-shrink: 0; }
+  .chrome-notice strong { color: inherit; }
+  .chrome-notice .detail { color: var(--muted); }
+  .status {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.error { background: #fee2e2; color: #b91c1c; }
+  .lang-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .lang-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .swap-btn {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .swap-btn:active { transform: rotate(180deg); }
+  .auto-toggle {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 640px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .col label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  textarea, .output {
+    width: 100%;
+    height: 320px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    resize: vertical;
+    overflow-x: auto;
+    max-width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  }
+  textarea { font-family: inherit; }
+  textarea:focus, .output:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .output { white-space: pre-wrap; word-break: break-word; overflow-y: auto; }
+  .output.placeholder { color: var(--muted); }
+  .chunk { border-radius: 3px; transition: background-color 0.15s ease; }
+  .chunk.active { background: var(--accent-soft); }
+  .hint { font-size: 0.75rem; color: var(--muted); margin: -6px 0 14px; }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .meta { font-size: 0.78rem; color: var(--muted); }
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+    display: none;
+  }
+  .progress-bar.show { display: block; }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+  footer { margin-top: 20px; font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+  code { font-family: var(--mono); background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>OFFGRID-TRANSLATE</h1>
+  <p class="sub">ブラウザ内だけで完結するオンデバイスAI翻訳。入力を止めると自動で翻訳が走り、修正すると即座に反映されます。</p>
+
+  <div class="chrome-notice">
+    <span class="icon">⚠️</span>
+    <span>
+      <strong>この機能は Chrome（バージョン138以降）専用です。</strong><br>
+      <span class="detail">Chrome内蔵のオンデバイスAI（Translator API）を使用するため、他のブラウザ（Safari / Firefox / Edge 等）やモバイル版 Chrome では動作しません。翻訳データはすべて端末内で処理され、サーバーには一切送信されません。初回利用時は翻訳モデル（数百MB程度）のダウンロードが発生することがあります。</span>
+    </span>
+  </div>
+
+  <div id="status" class="status"></div>
+  <div class="progress-bar" id="progressBar"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+  <div class="lang-bar">
+    <span class="lang-label" id="sourceLangLabel">English</span>
+    <button id="swapBtn" class="swap-btn" title="言語を入れ替え" aria-label="言語を入れ替え">⇄</button>
+    <span class="lang-label" id="targetLangLabel">日本語</span>
+    <label class="auto-toggle">
+      <input type="checkbox" id="autoToggle" checked>
+      自動翻訳
+    </label>
+  </div>
+  <p class="hint">どちらかの文章を選択すると、対応する段落・文がもう一方でハイライトされます</p>
+
+  <div class="grid">
+    <div class="col">
+      <label id="inputLabel" for="input">英文（入力）</label>
+      <textarea id="input" placeholder="ここに英文を貼り付けてください…"></textarea>
+    </div>
+    <div class="col">
+      <label id="outputLabel" for="output">日本語（結果）</label>
+      <div id="output" class="output placeholder">翻訳結果はここに表示されます</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="translateBtn">今すぐ翻訳</button>
+    <button id="clearBtn" class="ghost">クリア</button>
+    <span class="meta" id="meta"></span>
+  </div>
+
+  <footer>
+    OFFGRID-TRANSLATE — Chrome内蔵オンデバイスAIによる翻訳。データは端末外へ送信されません。
+  </footer>
+</div>
+
+<script>
+const inputEl = document.getElementById('input');
+const outputEl = document.getElementById('output');
+const btn = document.getElementById('translateBtn');
+const clearBtn = document.getElementById('clearBtn');
+const swapBtn = document.getElementById('swapBtn');
+const autoToggle = document.getElementById('autoToggle');
+const statusEl = document.getElementById('status');
+const metaEl = document.getElementById('meta');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const sourceLangLabel = document.getElementById('sourceLangLabel');
+const targetLangLabel = document.getElementById('targetLangLabel');
+const inputLabel = document.getElementById('inputLabel');
+const outputLabel = document.getElementById('outputLabel');
+
+const LANGS = { en: 'English', ja: '日本語' };
+let direction = { source: 'en', target: 'ja' }; // en->ja がデフォルト
+const translatorCache = {}; // key: "en-ja" -> Translator instance
+let currentAbort = null;
+let debounceTimer = null;
+const DEBOUNCE_MS = 700;
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status show' + (isError ? ' error' : '');
+}
+function clearStatus() {
+  statusEl.className = 'status';
+}
+
+function updateLangUI() {
+  sourceLangLabel.textContent = LANGS[direction.source];
+  targetLangLabel.textContent = LANGS[direction.target];
+  inputLabel.textContent = `${LANGS[direction.source]}（入力）`;
+  outputLabel.textContent = `${LANGS[direction.target]}（結果）`;
+  inputEl.placeholder = direction.source === 'en'
+    ? 'ここに英文を貼り付けてください…'
+    : 'ここに日本語を入力してください…';
+}
+
+async function getTranslator(source, target) {
+  const key = `${source}-${target}`;
+  if (translatorCache[key]) return translatorCache[key];
+
+  if (typeof Translator === 'undefined') {
+    throw new Error('unsupported');
+  }
+
+  const availability = await Translator.availability({ sourceLanguage: source, targetLanguage: target });
+  if (availability === 'unavailable') {
+    throw new Error('lang-unavailable');
+  }
+  if (availability === 'downloadable' || availability === 'downloading') {
+    progressBar.classList.add('show');
+    setStatus('翻訳モデルをダウンロード中です。初回のみ発生します…');
+  }
+
+  const translator = await Translator.create({
+    sourceLanguage: source,
+    targetLanguage: target,
+    monitor(m) {
+      m.addEventListener('downloadprogress', (e) => {
+        const pct = Math.round(e.loaded * 100);
+        progressFill.style.width = pct + '%';
+        setStatus('翻訳モデルをダウンロード中… ' + pct + '%');
+      });
+    }
+  });
+
+  progressBar.classList.remove('show');
+  translatorCache[key] = translator;
+  return translator;
+}
+
+// テキストをチャンク(段落、長い場合は文のかたまり)に分割し、元テキスト内の文字位置(start/end)も記録する
+function chunkWithOffsets(text) {
+  const MAX_LEN = 800;
+  const chunks = [];
+
+  // 空行(\n\n以上)で段落境界を検出しつつオフセットを保持
+  const paraRe = /\n{2,}/g;
+  const rawParagraphs = [];
+  let lastIndex = 0;
+  let m;
+  while ((m = paraRe.exec(text)) !== null) {
+    rawParagraphs.push({ start: lastIndex, end: m.index });
+    lastIndex = paraRe.lastIndex;
+  }
+  rawParagraphs.push({ start: lastIndex, end: text.length });
+
+  for (const para of rawParagraphs) {
+    const paraText = text.slice(para.start, para.end);
+    const trimmed = paraText.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.length <= MAX_LEN) {
+      const offsetInPara = paraText.indexOf(trimmed);
+      chunks.push({
+        text: trimmed,
+        start: para.start + offsetInPara,
+        end: para.start + offsetInPara + trimmed.length
+      });
+      continue;
+    }
+
+    // 長い段落は文単位に分割してから、MAX_LENを超えない範囲でまとめ直す
+    const sentRe = /[^.!?。！？]+[.!?。！？]+(?:\s|$)|[^.!?。！？]+$/g;
+    const sentences = [];
+    let sm;
+    sentRe.lastIndex = 0;
+    while ((sm = sentRe.exec(paraText)) !== null) {
+      sentences.push({ start: sm.index, end: sm.index + sm[0].length });
+    }
+    let buf = null;
+    for (const sent of sentences) {
+      if (buf && (sent.end - buf.start) > MAX_LEN) {
+        const raw = paraText.slice(buf.start, buf.end);
+        const t = raw.trim();
+        if (t) chunks.push({ text: t, start: para.start + buf.start, end: para.start + buf.end });
+        buf = null;
+      }
+      if (!buf) buf = { start: sent.start, end: sent.end };
+      else buf.end = sent.end;
+    }
+    if (buf) {
+      const raw = paraText.slice(buf.start, buf.end);
+      const t = raw.trim();
+      if (t) chunks.push({ text: t, start: para.start + buf.start, end: para.start + buf.end });
+    }
+  }
+  return chunks;
+}
+
+let currentChunks = []; // [{text, start, end}] 直近の翻訳に使われたソース側チャンク
+
+function buildOutputSpans(chunks, translatedTexts) {
+  outputEl.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  chunks.forEach((chunk, i) => {
+    const span = document.createElement('span');
+    span.className = 'chunk';
+    span.dataset.idx = String(i);
+    span.textContent = translatedTexts[i] || '';
+    frag.appendChild(span);
+    if (i < chunks.length - 1) frag.appendChild(document.createTextNode('\n\n'));
+  });
+  outputEl.appendChild(frag);
+}
+
+async function translateAll(triggeredByAuto) {
+  const text = inputEl.value.trim();
+  if (!text) {
+    outputEl.classList.add('placeholder');
+    outputEl.textContent = '翻訳結果はここに表示されます';
+    metaEl.textContent = '';
+    currentChunks = [];
+    return;
+  }
+
+  // 前回の翻訳処理を中断
+  if (currentAbort) {
+    currentAbort.aborted = true;
+  }
+  const myAbort = { aborted: false };
+  currentAbort = myAbort;
+
+  clearStatus();
+  btn.disabled = true;
+
+  try {
+    const translator = await getTranslator(direction.source, direction.target);
+    if (myAbort.aborted) return;
+    clearStatus();
+
+    const chunks = chunkWithOffsets(text);
+    const translatedTexts = new Array(chunks.length).fill('');
+    outputEl.classList.remove('placeholder');
+    metaEl.textContent = chunks.length > 1 ? `0 / ${chunks.length} 段落` : '';
+
+    for (let i = 0; i < chunks.length; i++) {
+      const translated = await translator.translate(chunks[i].text);
+      if (myAbort.aborted) return; // 入力が変わったので破棄
+      translatedTexts[i] = translated;
+      buildOutputSpans(chunks.slice(0, i + 1), translatedTexts);
+      if (chunks.length > 1) metaEl.textContent = `${i + 1} / ${chunks.length} 段落`;
+    }
+    if (!myAbort.aborted) {
+      currentChunks = chunks;
+      metaEl.textContent = '';
+    }
+  } catch (err) {
+    if (myAbort.aborted) return;
+    if (err.message === 'unsupported') {
+      setStatus('お使いの環境では Translator API が利用できません。Chrome 138以降のPC版でお試しください。', true);
+    } else if (err.message === 'lang-unavailable') {
+      setStatus(`この端末では ${LANGS[direction.source]}→${LANGS[direction.target]} の翻訳モデルに対応していません。`, true);
+    } else {
+      setStatus('翻訳中にエラーが発生しました: ' + err.message, true);
+    }
+  } finally {
+    if (currentAbort === myAbort) {
+      btn.disabled = false;
+      currentAbort = null;
+    }
+  }
+}
+
+function scheduleAutoTranslate() {
+  if (!autoToggle.checked) return;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => translateAll(true), DEBOUNCE_MS);
+}
+
+function clearHighlights() {
+  outputEl.querySelectorAll('.chunk.active').forEach(el => el.classList.remove('active'));
+}
+
+function highlightOutputChunks(indices) {
+  outputEl.querySelectorAll('.chunk').forEach(el => {
+    el.classList.toggle('active', indices.has(Number(el.dataset.idx)));
+  });
+}
+
+// 入力(textarea)側で選択されたときの処理：対応する出力チャンクをハイライト
+function handleInputSelection() {
+  if (!currentChunks.length) return;
+  const selStart = inputEl.selectionStart;
+  const selEnd = inputEl.selectionEnd;
+  if (selStart === selEnd) {
+    clearHighlights();
+    return;
+  }
+  const indices = new Set();
+  currentChunks.forEach((c, i) => {
+    if (c.start < selEnd && c.end > selStart) indices.add(i);
+  });
+  if (indices.size) {
+    highlightOutputChunks(indices);
+  } else {
+    clearHighlights();
+  }
+}
+
+// 出力側で選択されたときの処理：対応する入力範囲をtextarea上でハイライト(非フォーカスでも灰色選択として表示される)
+function handleOutputSelection() {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  if (!outputEl.contains(range.commonAncestorContainer)) return;
+
+  const spans = outputEl.querySelectorAll('.chunk');
+  const hitIndices = [];
+  spans.forEach((span) => {
+    if (range.intersectsNode(span)) hitIndices.push(Number(span.dataset.idx));
+  });
+  if (!hitIndices.length) return;
+
+  highlightOutputChunks(new Set(hitIndices));
+
+  const minIdx = Math.min(...hitIndices);
+  const maxIdx = Math.max(...hitIndices);
+  const start = currentChunks[minIdx].start;
+  const end = currentChunks[maxIdx].end;
+  inputEl.setSelectionRange(start, end);
+}
+
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement === inputEl) {
+    handleInputSelection();
+  } else {
+    handleOutputSelection();
+  }
+});
+
+inputEl.addEventListener('input', scheduleAutoTranslate);
+
+btn.addEventListener('click', () => {
+  clearTimeout(debounceTimer);
+  translateAll(false);
+});
+
+clearBtn.addEventListener('click', () => {
+  clearTimeout(debounceTimer);
+  if (currentAbort) currentAbort.aborted = true;
+  inputEl.value = '';
+  currentChunks = [];
+  outputEl.classList.add('placeholder');
+  outputEl.textContent = '翻訳結果はここに表示されます';
+  metaEl.textContent = '';
+  clearStatus();
+  inputEl.focus();
+});
+
+swapBtn.addEventListener('click', () => {
+  direction = { source: direction.target, target: direction.source };
+  updateLangUI();
+  currentChunks = [];
+
+  // 入力と出力の中身も入れ替える
+  const currentOutput = outputEl.classList.contains('placeholder') ? '' : outputEl.textContent;
+  const currentInput = inputEl.value;
+  inputEl.value = currentOutput;
+  if (currentInput.trim()) {
+    outputEl.classList.remove('placeholder');
+    outputEl.textContent = currentInput;
+  } else {
+    outputEl.classList.add('placeholder');
+    outputEl.textContent = '翻訳結果はここに表示されます';
+  }
+
+  clearTimeout(debounceTimer);
+  if (inputEl.value.trim()) scheduleAutoTranslate();
+});
+
+updateLangUI();
+
+if (typeof Translator === 'undefined') {
+  setStatus('この機能は Chrome 138以降でのみ動作します。現在のブラウザでは利用できません。', true);
+}
+</script>
+</body>
+</html>
