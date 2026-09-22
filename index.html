@@ -228,7 +228,7 @@
     <span class="icon">⚠️</span>
     <span>
       <strong>この機能は Chrome（バージョン138以降）専用です。</strong><br>
-      <span class="detail">Chrome内蔵のオンデバイスAI（Translator API）を使用するため、他のブラウザ（Safari / Firefox / Edge 等）やモバイル版 Chrome では動作しません。翻訳データはすべて端末内で処理され、サーバーには一切送信されません。初回利用時は翻訳モデル（数百MB程度）のダウンロードが発生することがあります。</span>
+      <span class="detail">Chrome内蔵のオンデバイスAI（Translator API）を使用するため、他のブラウザ（Safari / Firefox / Edge 等）やモバイル版 Chrome では動作しません。翻訳データはすべて端末内で処理され、サーバーには一切送信されません。初回利用時は翻訳モデル（数百MB程度）のダウンロードが発生することがあります。動作しない場合は <code>chrome://on-device-translation-internals</code> で言語モデルの状態を確認してください。</span>
     </span>
   </div>
 
@@ -468,9 +468,9 @@ async function translateAll(triggeredByAuto) {
   } catch (err) {
     if (myAbort.aborted) return;
     if (err.message === 'unsupported') {
-      setStatus('お使いの環境では Translator API が利用できません。Chrome 138以降のPC版でお試しください。', true);
+      setStatus('お使いの環境では Translator API が利用できません。chrome://settings/help でChromeを138以降に更新するか、chrome://flags で "Experimental translation API" を有効にしてください。', true);
     } else if (err.message === 'lang-unavailable') {
-      setStatus(`この端末では ${LANGS[direction.source]}→${LANGS[direction.target]} の翻訳モデルに対応していません。`, true);
+      setStatus(`この端末では ${LANGS[direction.source]}→${LANGS[direction.target]} の翻訳モデルに対応していません。chrome://on-device-translation-internals で言語パックの状態を確認・インストールしてください。`, true);
     } else {
       setStatus('翻訳中にエラーが発生しました: ' + err.message, true);
     }
@@ -598,7 +598,7 @@ updateLangUI();
 autosizeInput();
 
 if (typeof Translator === 'undefined') {
-  setStatus('この機能は Chrome 138以降でのみ動作します。現在のブラウザでは利用できません。', true);
+  setStatus('この機能は Chrome 138以降でのみ動作します。chrome://settings/help でバージョンを確認・更新してください。改善しない場合は chrome://flags で "Experimental translation API" を有効にして再起動してください。', true);
 }
 </script>
 </body>
